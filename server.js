@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 10000;  // ✅ Render usa PORT env
 const JWT_SECRET = process.env.JWT_SECRET || 'salone-lidia-2026-supersecret';
 const DB_PATH = path.join(__dirname, 'data/salone.db');
 
@@ -69,14 +69,23 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Routes
+// ✅ ROOT route (per Cannot GET/)
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'Salone Lidia API Live', 
+    ping: '/api/ping', 
+    login: '/api/auth/login (admin/admin123)',
+    docs: 'Admin dashboard su Netlify'
+  });
+});
+
+// Routes (invariate)
 app.get('/api/ping', (req, res) => res.json({ status: 'OK', timestamp: new Date() }));
 
 app.post('/api/auth/login', (req, res) => {
   console.log('🔑 Login:', req.body);
   const { username, password } = req.body;
   try {
-    // ✅ CORRETTO: Seleziona anche password per il confronto
     const user = db.prepare(`
       SELECT id, username, first_name, points, role, password 
       FROM customers WHERE username = ?
@@ -113,7 +122,6 @@ app.post('/api/auth/login', (req, res) => {
 
 // ✅ STATS DASHBOARD (admin only)
 app.get('/api/admin/stats', authenticateToken, (req, res) => {
-  // ✅ Check role admin
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Accesso negato' });
   }
@@ -129,7 +137,6 @@ app.get('/api/admin/stats', authenticateToken, (req, res) => {
 
 // ✅ LISTA CLIENTI (admin only)  
 app.get('/api/admin/customers', authenticateToken, (req, res) => {
-  // ✅ Check role admin
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Accesso negato' });
   }
@@ -148,7 +155,6 @@ app.get('/api/admin/customers', authenticateToken, (req, res) => {
 
 // ✅ AGGIUNGI CLIENTE (admin only)
 app.post('/api/admin/customers', authenticateToken, (req, res) => {
-  // ✅ Check role admin
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Accesso negato' });
   }
@@ -194,11 +200,12 @@ app.delete('/api/admin/customers/:id', authenticateToken, (req, res) => {
   }
 });
 
-const listener = app.listen(PORT, () => {
-  console.log(`🚀 API live su http://localhost:${PORT}`);
+// ✅ CRITICO RENDER: Listen su 0.0.0.0 + PORT env
+const listener = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 API live su PORT ${PORT}`);  // ✅ No localhost
   console.log(`DB: ${DB_PATH}`);
   console.log('🔐 Login: admin/admin123');
-  console.log('📱 Testa: http://localhost:10000/api/ping');
+  console.log(`📱 Testa: https://salone-lidia-api-1.onrender.com/api/ping`);
 });
 
 // Graceful shutdown
@@ -210,4 +217,4 @@ process.on('SIGTERM', () => {
   });
 });
 
-module.exports = app; // ✅ Per testing
+module.exports = app;
